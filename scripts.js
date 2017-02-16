@@ -22,13 +22,47 @@ let Graphics = (function () {
         console.log('updating function');
       };
 
-      that.draw = function() {
+      that.draw = function(m) {
         context.save();
-        console.log(spec.location.x, spec.location.y);
-        context.beginPath();
-        context.moveTo(spec.location.x, spec.location.y);
-        context.lineTo(spec.location.x+10, spec.location.y+10);
-        context.stroke();
+        //Draw top wall
+        if(spec.start == true){
+          console.log('start');
+        }
+        if(spec.end == true){
+          console.log('end');
+        }
+        if(spec.wall.top === null){
+          console.log('top Wall');
+          context.beginPath();
+          context.moveTo(spec.x*(1000/m), spec.y*(1000/m));
+          context.lineTo((spec.x+1)*(1000/m), spec.y*(1000/m));
+          context.stroke();
+        }
+        //Draw lower wall
+        if(spec.wall.bottom === null){
+          console.log('Bottom Wall start: ', spec.x*(1000/m), (spec.y+1)*(1000/m))
+          console.log('Bottom Wall end: ', (spec.x+1)*(1000/m), (spec.y+1)*(1000/m))
+          context.beginPath();
+          context.moveTo(spec.x*(1000/m), (spec.y+1)*(1000/m));
+          context.lineTo((spec.x+1)*(1000/m), (spec.y+1)*(1000/m));
+          context.stroke();
+        }
+        //Draw Right wall
+        if(spec.wall.right === null){
+          console.log('right Wall');
+          context.beginPath();
+          context.moveTo((spec.x+1)*(1000/m), spec.y*(1000/m));
+          context.lineTo((spec.x+1)*(1000/m), (spec.y+1)*(1000/m));
+          context.stroke();
+        }
+        //Draw Left wall
+        if(spec.wall.left === null){
+          context.beginPath();
+          context.moveTo(spec.x*(1000/m), spec.y*(1000/m));
+          context.lineTo(spec.x*(1000/m), (spec.y+1)*(1000/m));
+          context.stroke();
+        }
+        //console.log(spec.x, spec.y);
         context.restore();
       };
 
@@ -50,44 +84,67 @@ let Graphics = (function () {
 let MyMaze = (function(){
   let that = {}
   //let previousTime = performance.now();
+  let maze = [];
   let previousTime = 0;
   let elapsedTime = 0;
 
-  let mSize = 0;
+  let mSize = 5;
   function initMaze(m){
-    console.log('init my maze');
+    //console.log('init my maze');
+    for(let row = 0; row < m; row++){
+      maze[row] = [];
+      for(let col = 0; col < m; col++){
+        maze[row][col] = {
+          x:row,
+          y:col,
+          wall: {top: null, bottom: null, left: null, right: null},
+          visited: false,
+          correctPath: false,
+          here: false,
+          start: false,
+          end: false
+        }
+        if(row === 0 && col === 0){
+          maze[row][col].start = true;
+        }
+        if(row === m-1 && col === m-1){
+          maze[row][col].end = true;
+        }
+        //maze[row][col] = Graphics.Cell(cell);  I want to put this after the maze has been completed.
+      }
+    }
+    let startX = Math.floor((Math.random()*mSize))
+    console.log(startX);
+    let startY = Math.floor((Math.random()*mSize))
+    console.log(startY);
+    //console.log(maze)
   }
-  let myCell = Graphics.Cell({
-    location: {x:0, y:0},
-    wall: {up: null, down:null, left:null, right:null},
-    visited: false,
-    correctPath: false,
-    here: false
-  });
+  initMaze(mSize);
+  //  console.log(maze)
 
-  let myCell2 = Graphics.Cell({
-    location: {x:10, y:0},
-    wall: {up: null, down:null, left:null, right:null},
-    visited: false,
-    correctPath: false,
-    here: false
-  });
-
-  function update(){
-    myCell.update();
-    myCell2.update();
+  function update(m){
+    for(let row = 0; row < m; row++){
+      for(let col =0; col<m; col++){
+        maze[row][col].update();
+      }
+    }
   }
-  function render(){
+  function render(m){
+
     Graphics.beginRender();
-    myCell.draw();
-    myCell2.draw();
+    for(let row = 0; row < m; row++){
+      for(let col =0; col<m; col++){
+        //console.log(row, col)
+        maze[row][col].draw(mSize);
+      }
+    }
   }
   function gameLoop(time){
     elapsedTime = time - previousTime;
     previousTime = time;
 
-    update();
-    render();
+    update(mSize);
+    render(mSize);
 
     requestAnimationFrame(gameLoop);
   }
@@ -99,53 +156,3 @@ let MyMaze = (function(){
   }
   return that;
 }());
-/*
-function cell(){
-  var that ={};
-  var location = {x:0, y:0},
-      wall = {up: null, down:null, left:null, right:null},
-      visited = false,
-      correctPath = false,
-      here = false;
-
-  that.updateLocation = function(sX, sY){
-    location.x = sX;
-    location.y = sY;
-  }
-
-  that.updateUpWall = function(){
-    wall.up = true;
-  },
-  that.updateDownWall = function(){
-    wall.down = true;
-  },
-  that.updateLeftWall = function(){
-    wall.left = true;
-  },
-  that.updateRightWall = function(){
-    wall.right = true;
-  },
-  that.logger = function (){
-    console.log(`x: ${location.x}, y: ${location.y}`);
-    console.log(`wallUp: ${wall.up}, wallDown: ${wall.down}, wallLeft: ${wall.left}, wallRight: ${wall.right}`)
-  }
-  return that;
-}
-
-let mSize = 5;
-let maze = [];
-for(i=0; i<mSize; ++i){
-  maze[i] = [];
-  for(j=0; j<mSize; ++j){
-      maze[i][j] = cell();
-      maze[i][j].updateLocation(i, j);
-  }
-
-}
-
-for(i=0; i<mSize; ++i){
-  for(j=0; j< mSize; ++j){
-    console.log('MyCell: ', maze[i][j].logger());
-  }
-}
-*/
