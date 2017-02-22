@@ -9,6 +9,20 @@ let Graphics = (function () {
     };
     imgFloor.src = 'floor1.png';
 
+    let breadCrumb = new Image();
+    breadCrumb.isReady = false;
+    breadCrumb.onload = function(){
+      this.isReady = true;
+    }
+    breadCrumb.src = 'BreadCrumbs.png';
+
+    let shortestPath = new Image();
+    shortestPath.isReady = false;
+    shortestPath.onload = function(){
+      this.isReady = true;
+    }
+    shortestPath.src = 'shortestPath.png';
+
     function initialize() {
         let canvas = document.getElementById('canvas-main');
         context = canvas.getContext('2d');
@@ -21,16 +35,9 @@ let Graphics = (function () {
         };
     }
 
-    function drawCharacter(m, res, myChar){
-      context.drawImage(myChar.myChar, myChar.location.x*(res/m), myChar.location.y*(res/m),res/m, res/m);
-    }
-
     function Cell(spec){
 
       let that={};
-      that.update = function (){
-        console.log('updating function');
-      };
 
       that.draw = function(m, res) {
         context.strokeStyle = 'rgb(255,255,255)';
@@ -39,16 +46,12 @@ let Graphics = (function () {
         if(imgFloor.isReady){
           context.drawImage(imgFloor, spec.x*(res/m), spec.y*(res/m),res/m, res/m);
        }
-        //console.log('spec', spec)
         //Draw top wall
         if(spec.start == true){
-          // console.log('start');
         }
         if(spec.end == true){
-          // console.log('end');
         }
         if(spec.wall.top === null){
-          // console.log('top Wall');
           context.beginPath();
           context.moveTo(spec.x*(res/m), spec.y*(res/m));
           context.lineTo((spec.x+1)*(res/m), spec.y*(res/m));
@@ -56,8 +59,6 @@ let Graphics = (function () {
         }
         //Draw lower wall
         if(spec.wall.bottom === null){
-          // console.log('Bottom Wall start: ', spec.x*(res/m), (spec.y+1)*(res/m))
-          // console.log('Bottom Wall end: ', (spec.x+1)*(res/m), (spec.y+1)*(res/m))
           context.beginPath();
           context.moveTo(spec.x*(res/m), (spec.y+1)*(res/m));
           context.lineTo((spec.x+1)*(res/m), (spec.y+1)*(res/m));
@@ -65,7 +66,6 @@ let Graphics = (function () {
         }
         //Draw Right wall
         if(spec.wall.right === null){
-          // console.log('right Wall');
           context.beginPath();
           context.moveTo((spec.x+1)*(res/m), spec.y*(res/m));
           context.lineTo((spec.x+1)*(res/m), (spec.y+1)*(res/m));
@@ -78,11 +78,33 @@ let Graphics = (function () {
           context.lineTo(spec.x*(res/m), (spec.y+1)*(res/m));
           context.stroke();
         }
-        //console.log(spec.x, spec.y);
         context.restore();
       };
 
       return that;
+    }
+
+    function drawCharacter(m, res, myChar){
+      context.save();
+      context.drawImage(myChar.myChar, myChar.location.x*(res/m)+(.25*(res/m)),
+                        myChar.location.y*(res/m)+(.25*(res/m)),(res/m)/1.5, (res/m)/1.5);
+      context.restore();
+    }
+
+    function drawBreadCrumbs(m, res, location) {
+      context.save();
+      if(location.breadCrumb){
+        context.drawImage(breadCrumb, location.x*(res/m)+(.33*(res/m)),
+                          location.y*(res/m)+(.33*(res/m)),(res/m)/3, (res/m)/3)
+      }
+      context.restore();
+    }
+
+    function drawShortestPath(m, res, location){
+      context.save();
+      context.drawImage(shortestPath, location.x*(res/m)+(.33*(res/m)),
+                        location.y*(res/m)+(.33*(res/m)),(res/m)/3, (res/m)/3);
+      context.restore();
     }
 
     function beginRender() {
@@ -93,13 +115,16 @@ let Graphics = (function () {
       beginRender: beginRender,
       initialize: initialize,
       Cell: Cell,
-      drawCharacter: drawCharacter
+      drawCharacter: drawCharacter,
+      drawBreadCrumbs: drawBreadCrumbs,
+      drawShortestPath: drawShortestPath
     };
 }());
 
 let MyMaze = (function(){
   let that = {};
   let maze = [];
+  let shortestPath = [];
 
   function initMaze(m){
     for(let row = 0; row < m; row++){
@@ -112,12 +137,13 @@ let MyMaze = (function(){
           wall: {top: null, bottom: null, left: null, right: null},
           visited: false,
           breadCrumb: false,
-          correctPath: false,
+          parent: null,
           start: false,
           end: false
         }
         if(row === 0 && col === 0){
           maze[row][col].start = true;
+          maze[row][col].breadCrumb = true;
         }
         if(row === m-1 && col === m-1){
           maze[row][col].end = true;
@@ -125,12 +151,15 @@ let MyMaze = (function(){
         //maze[row][col] = Graphics.Cell(cell);  I want to put this after the maze has been completed.
       }
     }
-    assignWalls(maze, m)
-    //console.log(maze)
-    return maze;
+    assignWalls(m);
+    createShortestPath(m);
+    return {
+      maze,
+      shortestPath
+    };
   };
 
-  function assignWalls(maze, mSize){
+  function assignWalls(mSize){
     let prim = [];
     let neighbors = [];
     function isValid(x,y){
@@ -148,7 +177,8 @@ let MyMaze = (function(){
     }
     let startX = Math.floor((Math.random()*mSize))
     let startY = Math.floor((Math.random()*mSize))
-    prim.push(maze[startX][startY]);
+    // prim.push(maze[startX][startY]);
+    prim.push(maze[0][0]);
     //prim.push(maze[0][0]);
     while(prim.length !== 0){
       let num = Math.floor(Math.random()*prim.length)
@@ -193,6 +223,7 @@ let MyMaze = (function(){
       if(neighbors.length !== 0){
           let num2 = Math.floor(Math.random()*neighbors.length)
           let temp2 = neighbors[num2];
+          maze[temp.y][temp.x].parent = maze[temp2.y][temp2.x];
           if((temp2.x === temp.x) && (temp2.y == temp.y+1)){
             maze[temp.y][temp.x].wall.bottom = maze[temp2.y][temp2.x];
             maze[temp2.y][temp2.x].wall.top = maze[temp.y][temp.x];
@@ -213,10 +244,31 @@ let MyMaze = (function(){
   function updateBreadCrumb(y, x){
     maze[y][x].breadCrumb = true;
   }
+
+  function createShortestPath(m){
+    let row = m-1,
+        col = m-1,
+        p = maze[row][col];
+    shortestPath.push(p);
+    while(p.parent !== null){
+      shortestPath.push(p.parent);
+      p = p.parent
+    }
+  }
+
+  function updateShortestPath(location){
+    if(location.x === shortestPath[shortestPath.length-2 ].x && location.y === shortestPath[shortestPath.length-2].y){
+      shortestPath.pop();
+    }else{
+      shortestPath.push(maze[location.y][location.x]);
+    }
+  }
+
   return{
     maze: maze,
     initMaze: initMaze,
-    updateBreadCrumb: updateBreadCrumb
+    updateBreadCrumb: updateBreadCrumb,
+    updateShortestPath: updateShortestPath
   }
 }());
 
@@ -237,7 +289,7 @@ let myCharacter = (function(){
     }
   }
   function moveCharacter(keyCode, character, maze){
-    console.log('keyCode: ', keyCode);
+    //console.log('keyCode: ', keyCode);
   	if (keyCode === 40 || keyCode ===83 || keyCode === 75) {
   		if (character.location.wall.bottom) {
   			character.location = character.location.wall.bottom;
@@ -273,14 +325,23 @@ let MyGame = (function(){
   let that = {};
   let previousTime = 0;
   let elapsedTime = 0;
-  let currentMaze = [];
-  let myChar
-  let mSize = 5;
+  let currentMaze;
+  let myChar;
+  let mSize = 6;
   let myRes = 1000;
   let inputStage = {};
+  let trail = false;
+  let path = false;
+  let tempMaze;
 
   function render(maze, character){
     drawMaze(maze);
+    if(trail){
+      drawBreadCrumbs();
+    }
+    if(path){
+      drawShortestPath();
+    }
     drawCharacter(character);
   }
 
@@ -297,30 +358,54 @@ let MyGame = (function(){
     Graphics.drawCharacter(mSize, myRes, character);
   }
 
+  function drawShortestPath(){
+    for(let i = 0; i < currentMaze.shortestPath.length; i++){
+      Graphics.drawShortestPath(mSize, myRes, currentMaze.shortestPath[i]);
+    }
+  }
+
+  function drawBreadCrumbs(){
+    for(let i = 0; i < mSize; ++i){
+      for(let j = 0; j < mSize; ++j){
+        //let g = Graphics.Cell(maze[i][j]);
+        Graphics.drawBreadCrumbs(mSize, myRes, currentMaze.maze[i][j]);
+      }
+    }
+  }
+
   function processInput(character, maze) {
-  	for (let input in inputStage) {
-  		myCharacter.moveCharacter(inputStage[input], character, maze);
-  	}
-  	inputStage = {};
+    for (let input in inputStage) {
+    	myCharacter.moveCharacter(inputStage[input], character, maze);
+    }
+    inputStage = {};
+  }
+
+  function update(timeStamp, character){
+    let lastLocation = {x:character.location.x, y:character.location.y};
+    processInput(character, currentMaze.maze)
+    if(lastLocation.x !== character.location.x || lastLocation.y !== character.location.y){
+      MyMaze.updateShortestPath(character.location);
+      console.log(currentMaze.shortestPath);
+    }
+    lastLocation = {x:character.location.x, y:character.location.y};
   }
 
   function gameLoop(time){
     elapsedTime = time - previousTime;
     previousTime = time;
-    processInput(myChar, currentMaze);
-    render(currentMaze, myChar)
+    update(elapsedTime, myChar);
+    render(currentMaze.maze, myChar)
     requestAnimationFrame(gameLoop);
   }
 
   that.initialize = function() {
       window.addEventListener('keydown', function(event) {
-    		//moveCharacter(event.keyCode, myCharacter);
     		inputStage[event.keyCode] = event.keyCode;
     	});
       Graphics.initialize();
       currentMaze = MyMaze.initMaze(mSize);
-      drawMaze(currentMaze);
-      myChar = myCharacter.createCharacter(currentMaze[0][0]);
+      drawMaze(currentMaze.maze);
+      myChar = myCharacter.createCharacter(currentMaze.maze[0][0]);
       drawCharacter(myChar);
       gameLoop(previousTime);
   }
