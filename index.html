@@ -6,7 +6,16 @@
     <script src = "scripts.js"></script>
     <link rel="stylesheet" type="text/css" href="Styles.css">
 </head>
-<body onload = "MyGame.initialize()">
+<body onload = "MyGame.initialize(5)">
+    <div>
+      Logans Amazing Mazes
+    </div>
+    <div>
+      <button type="button" onClick="MyGame.initialize(5)">5x5</button>
+      <button type="button" onClick="MyGame.initialize(10)">10x10</button>
+      <button type="button" onClick="MyGame.initialize(15)">15x15</button>
+      <button type="button" onClick="MyGame.initialize(20)">20x20</button>
+    </div>
     <canvas id = "canvas-main" width = "1000" height = "1000" style = "width: 50%; height: 50%"></canvas>
 </body>
 </html>

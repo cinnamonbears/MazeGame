@@ -23,6 +23,27 @@ let Graphics = (function () {
     }
     shortestPath.src = 'shortestPath.png';
 
+    let hint = new Image();
+    hint.isReady=false;
+    hint.onload = function(){
+      this.isReady = true;
+    }
+    hint.src = 'hint.png';
+
+    let finish = new Image();
+    finish.isReady = false;
+    finish.onload = function(){
+      this.isReady = true;
+    }
+    finish.src = 'finish.png';
+
+    let home = new Image();
+    home.isReady = false;
+    home.onload = function(){
+      this.isReady = true;
+    }
+    home.src = 'home.png';
+
     function initialize() {
         let canvas = document.getElementById('canvas-main');
         context = canvas.getContext('2d');
@@ -47,10 +68,7 @@ let Graphics = (function () {
           context.drawImage(imgFloor, spec.x*(res/m), spec.y*(res/m),res/m, res/m);
        }
         //Draw top wall
-        if(spec.start == true){
-        }
-        if(spec.end == true){
-        }
+
         if(spec.wall.top === null){
           context.beginPath();
           context.moveTo(spec.x*(res/m), spec.y*(res/m));
@@ -78,7 +96,16 @@ let Graphics = (function () {
           context.lineTo(spec.x*(res/m), (spec.y+1)*(res/m));
           context.stroke();
         }
+        if(spec.start == true){
+          context.drawImage(home, spec.x*(res/m)+(.25*(res/m)),
+                            spec.y*(res/m)+(.25*(res/m)),(res/m)/1.5, (res/m)/1.5);
+        }
+        if(spec.end == true){
+          context.drawImage(finish, spec.x*(res/m)+(.25*(res/m)),
+                            spec.y*(res/m)+(.25*(res/m)),(res/m)/1.5, (res/m)/1.5);
+        }
         context.restore();
+
       };
 
       return that;
@@ -107,6 +134,13 @@ let Graphics = (function () {
       context.restore();
     }
 
+    function drawHint(m, res, location){
+      context.save();
+      context.drawImage(hint, location.x*(res/m)+(.33*(res/m)),
+                        location.y*(res/m)+(.33*(res/m)),(res/m)/3, (res/m)/3);
+      context.restore();
+    }
+
     function beginRender() {
         context.clear();
     }
@@ -117,7 +151,8 @@ let Graphics = (function () {
       Cell: Cell,
       drawCharacter: drawCharacter,
       drawBreadCrumbs: drawBreadCrumbs,
-      drawShortestPath: drawShortestPath
+      drawShortestPath: drawShortestPath,
+      drawHint: drawHint
     };
 }());
 
@@ -133,13 +168,14 @@ let MyMaze = (function(){
         maze[row][col] = {
           x:col,
           y:row,
-          passage: false,
-          wall: {top: null, bottom: null, left: null, right: null},
-          visited: false,
-          breadCrumb: false,
-          parent: null,
-          start: false,
-          end: false
+          bonusPoints: false, //part of the path for bonus points
+          passage: false,//is a passage in the maze
+          wall: {top: null, bottom: null, left: null, right: null}, // Walls
+          visited: false, //cell was visited during creation
+          breadCrumb: false,//cell has been visited
+          parent: null, //parent maze cell
+          start: false, //Starting Cell
+          end: false // ending cell
         }
         if(row === 0 && col === 0){
           maze[row][col].start = true;
@@ -249,10 +285,12 @@ let MyMaze = (function(){
     let row = m-1,
         col = m-1,
         p = maze[row][col];
+        maze[row][col].bonusPoints = true;
     shortestPath.push(p);
     while(p.parent !== null){
       shortestPath.push(p.parent);
       p = p.parent
+      maze[p.y][p.x].bonusPoints = true;
     }
   }
 
@@ -288,32 +326,57 @@ let myCharacter = (function(){
       myChar: myChar
     }
   }
-  function moveCharacter(keyCode, character, maze){
-    //console.log('keyCode: ', keyCode);
+
+  function checkScore(c){
+    return (c.location.breadCrumb === false && c.location.bonusPoints === true)
+  }
+
+  function moveCharacter(keyCode, character, maze, score){
   	if (keyCode === 40 || keyCode ===83 || keyCode === 75) {
   		if (character.location.wall.bottom) {
   			character.location = character.location.wall.bottom;
+        if(checkScore(character)){
+          score += 5;
+        }else if(character.location.breadCrumb === false){
+          score -= 1;
+        }
         MyMaze.updateBreadCrumb(character.location.y, character.location.x)
   		}
   	}
-  	if (keyCode === 38 || keyCode === 87 || keyCode === 73) {
+  	else if (keyCode === 38 || keyCode === 87 || keyCode === 73) {
   		if (character.location.wall.top) {
   			character.location = character.location.wall.top;
+        if(checkScore(character)){
+          score += 5;
+        }else if(character.location.breadCrumb === false){
+          score -= 1;
+        }
         MyMaze.updateBreadCrumb(character.location.y, character.location.x)
   		}
   	}
-  	if (keyCode === 39 || keyCode === 68 || keyCode === 76) {
+  	else if (keyCode === 39 || keyCode === 68 || keyCode === 76) {
   		if (character.location.wall.right) {
   			character.location = character.location.wall.right;
+        if(checkScore(character)){
+          score += 5;
+        }else if(character.location.breadCrumb === false){
+          score -= 1;
+        }
         MyMaze.updateBreadCrumb(character.location.y, character.location.x)
   		}
   	}
-  	if (keyCode === 37 || keyCode === 65 || keyCode === 74) {
+  	else if (keyCode === 37 || keyCode === 65 || keyCode === 74) {
   		if (character.location.wall.left) {
   			character.location = character.location.wall.left;
+        if(checkScore(character)){
+          score += 5;
+        }else if(character.location.breadCrumb === false){
+          score -= 1;
+        }
         MyMaze.updateBreadCrumb(character.location.y, character.location.x)
   		}
   	}
+    return score;
   };
   return {
     createCharacter: createCharacter,
@@ -323,16 +386,21 @@ let myCharacter = (function(){
 
 let MyGame = (function(){
   let that = {};
-  let previousTime = 0;
+  let previousTime = performance.now();
   let elapsedTime = 0;
   let currentMaze;
   let myChar;
-  let mSize = 6;
+  let mSize = 20;
   let myRes = 1000;
   let inputStage = {};
   let trail = false;
   let path = false;
+  let hint = false;
+  let showScore = false;
   let tempMaze;
+  let score = 0;
+  let timer = 0;
+  let gameOver = false;
 
   function render(maze, character){
     drawMaze(maze);
@@ -342,10 +410,14 @@ let MyGame = (function(){
     if(path){
       drawShortestPath();
     }
+    if(hint){
+      drawHint();
+    }
     drawCharacter(character);
   }
 
   function drawMaze(maze){
+
     for(let i = 0; i < mSize; ++i){
       for(let j = 0; j < mSize; ++j){
         let g = Graphics.Cell(maze[i][j]);
@@ -373,32 +445,80 @@ let MyGame = (function(){
     }
   }
 
+  function drawHint(){
+    if(currentMaze.shortestPath.length > 1){
+      Graphics.drawHint(mSize, myRes, currentMaze.shortestPath[currentMaze.shortestPath.length-2])
+    }
+  }
+
   function processInput(character, maze) {
     for (let input in inputStage) {
-    	myCharacter.moveCharacter(inputStage[input], character, maze);
+      if(input == 72){
+        hint = true;
+      }else if(input == 66){
+        trail ? trail=false : trail = true;
+      }else if(input == 80){
+        path ? path=false : path = true;
+      }else if(input == 89){
+        showScore ? showScore = false : showScore = true;
+      }else{
+        score = myCharacter.moveCharacter(inputStage[input], character, maze, score);
+        if(score < 0) score =0;
+      }
     }
     inputStage = {};
   }
 
   function update(timeStamp, character){
     let lastLocation = {x:character.location.x, y:character.location.y};
-    processInput(character, currentMaze.maze)
+    processInput(character, currentMaze.maze);
     if(lastLocation.x !== character.location.x || lastLocation.y !== character.location.y){
       MyMaze.updateShortestPath(character.location);
-      console.log(currentMaze.shortestPath);
+      hint = false;
+    }
+    if(character.location. y === mSize -1 && character.location.x === mSize -1){
+      console.log('Game Over');
+      gameOver = true;
     }
     lastLocation = {x:character.location.x, y:character.location.y};
+    if(timeStamp > 1000){
+      timer+=1;
+      console.log(timer);
+      elapsedTime -= 1000;
+    }
+  }
+
+  function resetGame(){
+    previousTime = performance.now();
+    elapsedTime = 0;
+    currentMaze;
+    myChar;
+    mSize = 20;
+    myRes = 1000;
+    inputStage = {};
+    trail = false;
+    path = false;
+    hint = false;
+    showScore = false;
+    tempMaze = [];
+    score = 0;
+    timer = 0;
+    gameOver = false;
   }
 
   function gameLoop(time){
-    elapsedTime = time - previousTime;
+    elapsedTime += time - previousTime;
     previousTime = time;
     update(elapsedTime, myChar);
-    render(currentMaze.maze, myChar)
-    requestAnimationFrame(gameLoop);
+    render(currentMaze.maze, myChar);
+    if(!gameOver){
+      requestAnimationFrame(gameLoop);
+    }
   }
 
-  that.initialize = function() {
+  that.initialize = function(mazeSize) {
+      resetGame();
+      mSize = mazeSize;
       window.addEventListener('keydown', function(event) {
     		inputStage[event.keyCode] = event.keyCode;
     	});
@@ -411,3 +531,7 @@ let MyGame = (function(){
   }
   return that;
 }());
+
+function onFiveByFive(size){
+  MyGame.initialize(size);
+}
