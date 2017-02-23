@@ -7,15 +7,27 @@
     <link rel="stylesheet" type="text/css" href="Styles.css">
 </head>
 <body onload = "MyGame.initialize(5)">
-    <div>
-      Logans Amazing Mazes
+    <div class = "header">
+      <div class="" id = "score"></div>
+      <div class="" id = "time"></div>
     </div>
-    <div>
-      <button type="button" onClick="MyGame.initialize(5)">5x5</button>
-      <button type="button" onClick="MyGame.initialize(10)">10x10</button>
-      <button type="button" onClick="MyGame.initialize(15)">15x15</button>
-      <button type="button" onClick="MyGame.initialize(20)">20x20</button>
+    <div class="buttons">
+      <div class="iButton">
+        <button class="button" type="button" onClick="MyGame.initialize(5)">5x5</button>
+      </div>
+      <div class="iButton">
+        <button class="button" type="button" onClick="MyGame.initialize(10)">10x10</button>
+      </div>
+      <div class="iButton">
+        <button class="button" type="button" onClick="MyGame.initialize(15)">15x15</button>
+      </div>
+      <div class="iButton">
+        <button class="button" type="button" onClick="MyGame.initialize(20)">20x20</button>
+      </div>
     </div>
-    <canvas id = "canvas-main" width = "1000" height = "1000" style = "width: 50%; height: 50%"></canvas>
+    <div class="maze">
+      <canvas id = "canvas-main" width = "1000" height = "1000" style = "width: 90%; height: 90%"></canvas>
+    </div>
+    <div class="scoreboard" id="highScore"></div>
 </body>
 </html>

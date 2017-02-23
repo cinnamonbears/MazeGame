@@ -7,7 +7,7 @@ let Graphics = (function () {
     imgFloor.onload = function() {
     	this.isReady = true;
     };
-    imgFloor.src = 'floor1.png';
+    imgFloor.src = 'grass.png';
 
     let breadCrumb = new Image();
     breadCrumb.isReady = false;
@@ -61,7 +61,7 @@ let Graphics = (function () {
       let that={};
 
       that.draw = function(m, res) {
-        context.strokeStyle = 'rgb(255,255,255)';
+        context.strokeStyle = 'rgb(255,66,54)';
         context.lineWidth = 6
         context.save();
         if(imgFloor.isReady){
@@ -162,6 +162,8 @@ let MyMaze = (function(){
   let shortestPath = [];
 
   function initMaze(m){
+    shortestPath = [];
+    maze = [];
     for(let row = 0; row < m; row++){
       maze[row] = [];
       for(let col = 0; col < m; col++){
@@ -312,7 +314,7 @@ let MyMaze = (function(){
 
 let myCharacter = (function(){
   let that = {};
-  let location;
+  // let location;
 
   function createCharacter(location){
     let myChar = new Image();
@@ -320,7 +322,7 @@ let myCharacter = (function(){
     myChar.onload = function(){
       this.isReady = true;
     }
-    myChar.src = 'undeadLock.png';
+    myChar.src = 'peon1.png';
     return {
       location: location,
       myChar: myChar
@@ -401,8 +403,14 @@ let MyGame = (function(){
   let score = 0;
   let timer = 0;
   let gameOver = false;
+  let highScore = [];
 
   function render(maze, character){
+    var hsNode = document.getElementById('highScore');
+    var timeNode = document.getElementById('time');
+    var scoreNode = document.getElementById('score');
+    timeNode.innerHTML = "&nbsp;Time:<br>" + timer;
+    scoreNode.innerHTML = "&nbsp;Score:<br>" + score;
     drawMaze(maze);
     if(trail){
       drawBreadCrumbs();
@@ -414,6 +422,29 @@ let MyGame = (function(){
       drawHint();
     }
     drawCharacter(character);
+
+    hsNode.innerHTML = "High Score:<br>";
+    if(highScore.length > 0){
+      console.log(highScore)
+      // highScore = sortByHighScore(highScore, highScore.s)
+      highScore.sort(function(a,b){
+        return parseInt(b.s) - parseInt(a.s);
+      })
+      for(var i =0; i < Math.min(highScore.length,5); i++){
+        hsNode.innerHTML+= i+1 + ": Score: " + highScore[i].s
+                      + "<br>Time: " + highScore[i].t
+                      + "<br>Maze Size: " + highScore[i].m
+                      + "<br>*************<br>";
+      }
+    }
+  }
+
+  function sortByHighScore(hs, key){
+    return hs.sort(function(a, b){
+      var x = a[key];
+      var y = b[key];
+      return( (x<y) ? -1 : ((x>y) ? 1 : 0));
+    });
   }
 
   function drawMaze(maze){
@@ -431,7 +462,7 @@ let MyGame = (function(){
   }
 
   function drawShortestPath(){
-    for(let i = 0; i < currentMaze.shortestPath.length; i++){
+    for(let i = 1; i < currentMaze.shortestPath.length-1; i++){
       Graphics.drawShortestPath(mSize, myRes, currentMaze.shortestPath[i]);
     }
   }
@@ -463,7 +494,8 @@ let MyGame = (function(){
         showScore ? showScore = false : showScore = true;
       }else{
         score = myCharacter.moveCharacter(inputStage[input], character, maze, score);
-        if(score < 0) score =0;
+        console.log(score)
+        if(score < 0) score = 0;
       }
     }
     inputStage = {};
@@ -483,7 +515,7 @@ let MyGame = (function(){
     lastLocation = {x:character.location.x, y:character.location.y};
     if(timeStamp > 1000){
       timer+=1;
-      console.log(timer);
+      console.log('Time:',timer);
       elapsedTime -= 1000;
     }
   }
@@ -493,7 +525,7 @@ let MyGame = (function(){
     elapsedTime = 0;
     currentMaze;
     myChar;
-    mSize = 20;
+    mSize = 5;
     myRes = 1000;
     inputStage = {};
     trail = false;
@@ -513,6 +545,9 @@ let MyGame = (function(){
     render(currentMaze.maze, myChar);
     if(!gameOver){
       requestAnimationFrame(gameLoop);
+    }else if(gameOver){
+      highScore.push({s: score, t: timer, m: mSize});
+      render(currentMaze.maze, myChar);
     }
   }
 
@@ -531,7 +566,3 @@ let MyGame = (function(){
   }
   return that;
 }());
-
-function onFiveByFive(size){
-  MyGame.initialize(size);
-}

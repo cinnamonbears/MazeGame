@@ -1,3 +1,59 @@
-.body{
-  background-color: white;
+body{
+  background-image: url("map.png");
+  background-repeat: no-repeat;
+  background-size:cover;
+}
+.header{
+  clear: both;
+  /*background-image: url("banner.png"), url("banner2.png");
+  background-position: left top, right top;
+  background-repeat: no-repeat;*/
+  width: 90%;
+  height: 75px;
+  margin: auto;
+}
+#score{
+  text-align: center;
+  float: left;
+  margin: auto;
+  width: 50%;
+  color: white;
+  font-size: 150%
+}
+#time{
+  text-align: center;
+  float: left;
+  width: 40%;
+  margin: auto;
+  color: white;
+  font-size: 150%
+}
+.buttons{
+  clear: both;
+  width: 25%;
+  height: 50%;
+  float:left;
+}
+.maze{
+  float: left;
+  width: 50%;
+  height: 50%;
+}
+#highScore{
+  float: left;
+  margin: auto;
+  color: white;
+  font-size: 150%
+}
+.iButton{
+  text-align: center;
+  margin-top: 5%;
+  width: 100%;
+  height:15%;
+
+}
+.button{
+  color: #c452d3;
+  font-size: 125%;
+  background-image: url("stone.png");
 }
