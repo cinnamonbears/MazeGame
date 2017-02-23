@@ -1,5 +1,7 @@
 'use strict';
 
+let gameInProgress = false;
+
 let Graphics = (function () {
     let context = null;
     let imgFloor = new Image();
@@ -62,7 +64,7 @@ let Graphics = (function () {
 
       that.draw = function(m, res) {
         context.strokeStyle = 'rgb(255,66,54)';
-        context.lineWidth = 6
+        context.lineWidth = 4
         context.save();
         if(imgFloor.isReady){
           context.drawImage(imgFloor, spec.x*(res/m), spec.y*(res/m),res/m, res/m);
@@ -145,6 +147,18 @@ let Graphics = (function () {
         context.clear();
     }
 
+    function drawOutline(res) {
+      context.beginPath();
+      context.moveTo(0,0);
+      context.lineTo(res-1, 0);
+      context.lineTo(res-1, res-1);
+      context.lineTo(0,res-1);
+      context.closePath();
+      context.lineWidth = 10
+      context.strokeStyle = 'rgb(196,82,211)';
+      context.stroke();
+    }
+
     return {
       beginRender: beginRender,
       initialize: initialize,
@@ -152,7 +166,8 @@ let Graphics = (function () {
       drawCharacter: drawCharacter,
       drawBreadCrumbs: drawBreadCrumbs,
       drawShortestPath: drawShortestPath,
-      drawHint: drawHint
+      drawHint: drawHint,
+      drawOutline: drawOutline
     };
 }());
 
@@ -412,6 +427,7 @@ let MyGame = (function(){
     timeNode.innerHTML = "&nbsp;Time:<br>" + timer;
     scoreNode.innerHTML = "&nbsp;Score:<br>" + score;
     drawMaze(maze);
+    drawOutline();
     if(trail){
       drawBreadCrumbs();
     }
@@ -425,18 +441,20 @@ let MyGame = (function(){
 
     hsNode.innerHTML = "High Score:<br>";
     if(highScore.length > 0){
-      console.log(highScore)
-      // highScore = sortByHighScore(highScore, highScore.s)
       highScore.sort(function(a,b){
         return parseInt(b.s) - parseInt(a.s);
       })
       for(var i =0; i < Math.min(highScore.length,5); i++){
         hsNode.innerHTML+= i+1 + ": Score: " + highScore[i].s
-                      + "<br>Time: " + highScore[i].t
-                      + "<br>Maze Size: " + highScore[i].m
+                      + "<br>Time: " + highScore[i].t + " Seconds"
+                      + "<br>Maze Size: " + highScore[i].m +"x"+ highScore[i].m
                       + "<br>*************<br>";
       }
     }
+  }
+
+  function drawOutline(){
+    Graphics.drawOutline(myRes);
   }
 
   function sortByHighScore(hs, key){
@@ -494,7 +512,7 @@ let MyGame = (function(){
         showScore ? showScore = false : showScore = true;
       }else{
         score = myCharacter.moveCharacter(inputStage[input], character, maze, score);
-        console.log(score)
+        // console.log(score)
         if(score < 0) score = 0;
       }
     }
@@ -509,13 +527,11 @@ let MyGame = (function(){
       hint = false;
     }
     if(character.location. y === mSize -1 && character.location.x === mSize -1){
-      console.log('Game Over');
       gameOver = true;
     }
     lastLocation = {x:character.location.x, y:character.location.y};
     if(timeStamp > 1000){
       timer+=1;
-      console.log('Time:',timer);
       elapsedTime -= 1000;
     }
   }
@@ -548,10 +564,12 @@ let MyGame = (function(){
     }else if(gameOver){
       highScore.push({s: score, t: timer, m: mSize});
       render(currentMaze.maze, myChar);
+      gameInProgress = false;
     }
   }
 
   that.initialize = function(mazeSize) {
+      gameInProgress = true;
       resetGame();
       mSize = mazeSize;
       window.addEventListener('keydown', function(event) {
@@ -562,7 +580,29 @@ let MyGame = (function(){
       drawMaze(currentMaze.maze);
       myChar = myCharacter.createCharacter(currentMaze.maze[0][0]);
       drawCharacter(myChar);
-      gameLoop(previousTime);
+      gameInProgress = true;
+      requestAnimationFrame(gameLoop)
+  }
+
+  that.resetGame = function(mazeSize){
+    resetGame();
+    mSize = mazeSize;
+    window.addEventListener('keydown', function(event) {
+      inputStage[event.keyCode] = event.keyCode;
+    });
+    Graphics.initialize();
+    currentMaze = MyMaze.initMaze(mSize);
+    drawMaze(currentMaze.maze);
+    myChar = myCharacter.createCharacter(currentMaze.maze[0][0]);
+    drawCharacter(myChar);
   }
   return that;
 }());
+
+function gameCheck(size){
+  if(gameInProgress){
+    var game = MyGame.resetGame(size);
+  }else{
+    var game = MyGame.initialize(size);
+  }
+}
